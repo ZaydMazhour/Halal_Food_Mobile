@@ -1,74 +1,185 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { supabase } from '../../supabase/supabase';
+import { useEffect, useState } from 'react';
+import { Image, StyleSheet, Platform, View, Text, ScrollView, TouchableOpacity, FlatList, TextInput } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import Carousel from 'react-native-snap-carousel';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
-export default function HomeScreen() {
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  img: string;
+}
+
+export default function index() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [promotions, setPromotions] = useState<any[]>([]); // Assuming promotions are simple data objects
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchText, setSearchText] = useState<string>("");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from("Product").select("*");
+      if (error) {
+        console.error("Error fetching products:", error.message);
+      } else {
+        setProducts(data);
+      }
+    };
+
+    const fetchPromotions = async () => {
+      // For now, we're hardcoding promotions, but you can fetch this from your DB as well
+      setPromotions([
+        { title: "Promo 1", image: "https://example.com/promo1.jpg" },
+        { title: "Promo 2", image: "https://example.com/promo2.jpg" },
+      ]);
+    };
+
+    fetchProducts();
+    fetchPromotions();
+    setLoading(false);
+  }, []);
+
+  // Product section render
+  const renderProduct = ({ item }: { item: Product }) => (
+    <TouchableOpacity style={styles.productCard}>
+      <Image source={{ uri: item.img }} style={styles.productImage} />
+      <Text style={styles.productTitle}>{item.title}</Text>
+      <Text style={styles.productPrice}>${item.price}</Text>
+    </TouchableOpacity>
+  );
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <ScrollView style={styles.container}>
+
+      <View style={styles.header}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search products..."
+          value={searchText}
+          onChangeText={setSearchText}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <TouchableOpacity style={styles.cartIcon}>
+          <Icon name="shopping-cart" size={25} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.productSection}>
+        <Text style={styles.sectionTitle}>Promotions</Text>
+        <FlatList
+          data={products.slice(0, 5)} // Display the first 5 products for section 1
+          renderItem={renderProduct}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+
+      <View style={styles.productSection}>
+        <Text style={styles.sectionTitle}>Catalogue</Text>
+        <FlatList
+          data={products.slice(5, 10)} // Display the next 5 products for section 2
+          renderItem={renderProduct}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 35,
+
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  searchInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    height: 40,
+    paddingLeft: 15,
+    borderRadius: 25,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  headerButton: {
+    padding: 10,
+    backgroundColor: "#007bff",
+    borderRadius: 5,
+  },
+  headerText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  carouselContainer: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  carouselItem: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 10,
+    margin: 5,
+    width: 300,
+    height: 200,
+    alignItems: "center",
+  },
+  carouselImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+  },
+  carouselTitle: {
+    position: "absolute",
+    bottom: 10,
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  productSection: {
+    marginBottom: 20,
+    backgroundColor :'white'
+  },
+  productCard: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 10,
+    padding: 10,
+    marginRight: 10,
+    width: 150,
+    alignItems: "center",
+  },
+  productImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+  },
+  productTitle: {
+    marginTop: 10,
+    fontWeight: "bold",
+  },
+  productPrice: {
+    marginTop: 5,
+    color: "#888",
+  },
+  cartIcon: {
+    backgroundColor: "#007bff",
+    padding: 10,
+    borderRadius: 25,
+    marginLeft: 10,
   },
 });
